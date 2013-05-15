@@ -1,4 +1,4 @@
-#!perl
+#!/home/user/mstark/local/bin/perl
 
 use Digest::MD5 qw(md5_hex);
 use Net::IRC;
@@ -54,7 +54,7 @@ sub join_channel {
 
 sub load_words {
   my $ifh;
-  open($ifh, "<honorable_phrases.txt") or return;
+  open($ifh, "<honorable_phrases.txt") or debug_print("Error - could not open honorable_phrases.txt for read ($!)");
   %honorable_phrases = ();
   while (<$ifh>) {
     my $line = $_;
@@ -74,7 +74,8 @@ sub save_words {
     push(@lines, "$phrase:$honorable_phrases{$phrase}");
   }
   my $ofh;
-  open($ofh, ">honorable_phrases.txt") or return;
+  open($ofh, ">honorable_phrases.txt") or debug_print("Could not open honorable_phrases.txt for write ($!)");
+  print $ofh join("\n", @lines);
   close($ofh);
 }
 
@@ -82,7 +83,7 @@ sub save_words {
 sub on_connect {
   my $conn = shift;
   my @channels;
-  push(@channels, '#reddit-Christianity');
+  push(@channels, '#reddit-Christianaty');
   my $message = "Joining channels: " . join(", ", @channels);
   debug_print($message);
   foreach my $channel (@channels) {
@@ -109,11 +110,11 @@ sub on_msg {
 
   if ($text =~ /^load/i && $nick eq "mstark") {
     $conn->privmsg($nick, "Loading words...");
-    load_words();
+    load_words($conn, $nick);
     $conn->privmsg($nick, "Loading complete.");
   } elsif ($text =~ /^save/i && $nick eq "mstark") {
     $conn->privmsg($nick, "Saving words...");
-    save_words();
+    save_words($conn, $nick);
     $conn->privmsg($nick, "Saving complete.");
   } elsif ($text =~ /^add (.+):(.+)/i && $nick eq "mstark") {
     my ($word, $honorphrase) = ($1, $2);
@@ -128,8 +129,7 @@ sub on_msg {
     $conn->privmsg($nick, "You may ask me about which things have honor by typing '!honor <phrase>'\n");
   } elsif ($text =~ /^join (#.+)$/i && $nick eq "mstark") {
     my $channel = $1;
-    $conn->join($channel);
-    $conn->privmsg($channel, "I am WorfBot, son of MoghBot.");
+    join_channel($conn, $channel);
   } elsif ($text =~ /^part (#.+)$/i && $nick eq "mstark") {
     my $channel = $1;
     $conn->privmsg($channel, "Today is a good day to die!");
@@ -145,7 +145,6 @@ sub on_msg {
 my $tmp;
 open ($tmp, ">debug_log.txt");
 close($tmp);
-load_words();
 
 # Now, create our IRC connection.
 my $irc = new Net::IRC;
@@ -161,6 +160,9 @@ my $conn = $irc->newconn(
 $conn->add_handler('376', \&on_connect);
 $conn->add_handler('public', \&on_public);
 $conn->add_handler('msg', \&on_msg);
+
+# Initial Load
+load_words();
 
 # Go!
 $irc->start();

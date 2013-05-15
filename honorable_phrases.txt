@@ -1,0 +1,11 @@
+romulans:Dishonorable
+bacon:Honorable
+worfbot:Honorable
+quark:Dishonorable
+jesus:Honorable
+lwaxana troi:Dishonorable
+mogh:Honorable
+worf:Honorable
+mstark:Honorable
+moghbot:Honorable
+deanna troi:Dishonorable
