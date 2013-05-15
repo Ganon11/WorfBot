@@ -1,4 +1,4 @@
-#!/home/user/mstark/local/bin/perl
+#!/usr/bin/env perl
 
 use Digest::MD5 qw(md5_hex);
 use Net::IRC;
@@ -82,10 +82,9 @@ sub save_words {
 #Run once, when WorfBot first connects to a server.
 sub on_connect {
   my $conn = shift;
-  my @channels;
-  push(@channels, '#reddit-Christianaty');
-  my $message = "Joining channels: " . join(", ", @channels);
-  debug_print($message);
+  my $channelref = $conn->{channels};
+  my @channels = @$channelref;
+  debug_print("Joining channels: " . join(", ", @channels));
   foreach my $channel (@channels) {
     join_channel($conn, $channel);
   }
@@ -140,8 +139,15 @@ sub on_msg {
 }
 
 # 'Main' function
+# Args - server_address channel [channel2 channel3 ...]
 
-# First, clear the debug log of previous contents. Each debug_log.txt is for 1 WorfBot session.
+my $server_addr = shift(@ARGV);
+my @channels = @ARGV;
+
+print "Server: $server_addr\n";
+print "Other args: @channels\n";
+
+# Clear the debug log of previous contents. Each debug_log.txt is for 1 WorfBot session.
 my $tmp;
 open ($tmp, ">debug_log.txt");
 close($tmp);
@@ -149,12 +155,13 @@ close($tmp);
 # Now, create our IRC connection.
 my $irc = new Net::IRC;
 my $conn = $irc->newconn(
-                         Server => 'irc.freenode.net',
+                         Server => $server_addr,
                          Port => '6667',
                          Nick => 'WorfBot',
                          Ircname => 'WorfBot, son of MoghBot',
                          Username => 'WorfBot'
 );
+$conn->{channels} = \@channels;
 
 # Add listeners for various IRC signals
 $conn->add_handler('376', \&on_connect);
