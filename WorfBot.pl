@@ -1,7 +1,5 @@
 #!perl
 
-#LOLTRIVIAL
-
 use Digest::MD5 qw(md5_hex);
 use Net::IRC;
 use IO::File;
