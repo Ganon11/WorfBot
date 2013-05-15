@@ -20,7 +20,7 @@ sub debug_print {
 
 sub check_honor {
   my ($conn, $phrase, $target) = @_;
-  debug_print("'$target' asked about '$phrase'");
+  debug_print("'$target' asked about things including '$phrase'");
   my $response;
   if (exists $honorable_phrases{lc $phrase}) {
     debug_print("Found '$phrase' in hash, using predetermined answer");
