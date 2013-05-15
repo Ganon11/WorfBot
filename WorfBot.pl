@@ -82,7 +82,7 @@ sub save_words {
 sub on_connect {
   my $conn = shift;
   my @channels;
-  push(@channels, '#startrek');
+  push(@channels, '#reddit-Christianity');
   my $message = "Joining channels: " . join(", ", @channels);
   debug_print($message);
   foreach my $channel (@channels) {
@@ -150,7 +150,7 @@ load_words();
 # Now, create our IRC connection.
 my $irc = new Net::IRC;
 my $conn = $irc->newconn(
-                         Server => 'irc.factset.com',
+                         Server => 'irc.freenode.net',
                          Port => '6667',
                          Nick => 'WorfBot',
                          Ircname => 'WorfBot, son of MoghBot',
