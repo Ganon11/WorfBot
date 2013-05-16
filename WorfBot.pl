@@ -4,10 +4,12 @@ use Digest::MD5 qw(md5_hex);
 use Net::IRC;
 use IO::File;
 use Date::Format;
+use JSON;
 use strict;
 use warnings;
 
 my %honorable_phrases;
+my $biblesOrgAPIKey;
 
 sub debug_print {
   my $message = shift;
@@ -39,6 +41,18 @@ sub check_honor {
     }
   }
   $conn->privmsg($target, $response);
+}
+
+sub quote_bible {
+  my ($reference, $version) = @_;
+  $reference =~ /(\d+)?([a-zA-Z]+)(?:(\d+))(?::(\d+))?(?:-(\d+))?/i;
+  my ($booknum, $book, $chapter, $verse, $verseEnd) = ($1, $2, $3, $4, $5);
+  print "$booknum " if defined $booknum;
+  print "$book " if defined $book;
+  print "$chapter:" if defined $chapter;
+  print "$verse" if defined $verse;
+  print "-$verseEnd" if defined $verseEnd;
+  print "\n";
 }
 
 sub add_word {
@@ -138,18 +152,32 @@ sub on_msg {
   }
 }
 
-# 'Main' function
-# Args - server_address channel [channel2 channel3 ...]
+sub get_usage_string {
+  my $usage = <<END;
+Usage: perl WorfBot.pl <server address> [channel1 channel2 channel3 ...]
+  e.g. perl WorfBot.pl irc.freenode.net #Channel1 #OtherChannel
+END
+  return $usage;
+}
 
+# 'Main' function
+# Args - server_address [channel1 channel2 channel3 ...]
+
+if (scalar(@ARGV) < 1) {
+  print get_usage_string();
+  die;
+}
 my $server_addr = shift(@ARGV);
 my @channels = @ARGV;
 
-print "Server: $server_addr\n";
-print "Other args: @channels\n";
-
 # Clear the debug log of previous contents. Each debug_log.txt is for 1 WorfBot session.
 my $tmp;
-open ($tmp, ">debug_log.txt");
+open($tmp, ">debug_log.txt");
+close($tmp);
+
+# Next, initialize our API key from bibles.org
+open($tmp, "<BiblesOrgAPIKey.dat");
+$biblesOrgAPIKey = <$tmp>;
 close($tmp);
 
 # Now, create our IRC connection.

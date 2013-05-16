@@ -1,11 +1,13 @@
 romulans:Dishonorable
-bacon:Honorable
 worfbot:Honorable
+bacon:Honorable
 quark:Dishonorable
 jesus:Honorable
 lwaxana troi:Dishonorable
 mogh:Honorable
+cheating:Dishonorable
 worf:Honorable
 mstark:Honorable
+dishonor:Dishonorable
 moghbot:Honorable
 deanna troi:Dishonorable
