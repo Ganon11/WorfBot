@@ -136,7 +136,7 @@ sub on_public {
 
   if ($text =~ /^\!honor (.+)/i) {
     check_honor($conn, $1, $event->{to}[0]);
-  } elsif ($text =! /^\!help/i) {
+  } elsif ($text =~ /^\!help/i) {
     give_help($conn, $event->{nick});
   }
 }
