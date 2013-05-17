@@ -2,6 +2,7 @@ romulans:Dishonorable
 worfbot:Honorable
 bacon:Honorable
 quark:Dishonorable
+blood wine:Honorable
 jesus:Honorable
 lwaxana troi:Dishonorable
 mogh:Honorable
