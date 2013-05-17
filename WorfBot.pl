@@ -134,7 +134,7 @@ sub on_public {
   my ($conn, $event) = @_;
   my $text = $event->{args}[0];
 
-  if ($text =~ /^\!honor (.+)/i) {
+  if ($text =~ /^\!hono(?:u)?r (.+)/i) {
     check_honor($conn, $1, $event->{to}[0]);
   } elsif ($text =~ /^\!help/i) {
     give_help($conn, $event->{nick});
@@ -172,7 +172,7 @@ sub on_msg {
   } elsif ($text =~ /^part (#.+)$/i && $nick eq "mstark") {
     my $channel = $1;
     part_channel($conn, $channel);
-  } elsif ($text =~ /^honor (.+)/i) {
+  } elsif ($text =~ /^hono(?:u)?r (.+)/i) {
     check_honor($conn, $1, $nick);    
   }
 }
