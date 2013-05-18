@@ -12,6 +12,41 @@ use warnings;
 my %honorablePhrases;
 my $biblesOrgAPIKey;
 my %versionInfo;
+my @authedUsers;
+
+sub user_is_authed {
+  my $user = shift;
+  my $userHash = md5_hex($user);
+  return 1 if (grep { $_ eq $userHash } @authedUsers);
+  return 0;
+}
+
+sub load_users {
+  @authedUsers = ();
+  my $userFH;
+  open($userFH, "<users.dat");
+  while (<$userFH>) {
+    my $userHash = $_;
+    chomp($userHash);
+    push(@authedUsers, $userHash);
+  }
+  close($userFH);
+  print Dumper(\@authedUsers);
+}
+
+sub save_users {
+  my $userFH;
+  open($userFH, ">users.dat");
+  print $userFH join("\n", @authedUsers);
+  close($userFH);
+}
+
+sub add_authed_user {
+  my $nick = shift;
+  if (!user_is_authed($nick)) {
+    push(@authedUsers, md5_hex($nick));
+  }
+}
 
 sub load_versions {
   my $versionFH;
@@ -147,15 +182,15 @@ sub on_msg {
   my $text = $event->{args}[0];
   my $nick = $event->{nick};
 
-  if ($text =~ /^load/i && $nick eq "mstark") {
+  if ($text =~ /^load$/i && user_is_authed($nick)) {
     $conn->privmsg($nick, "Loading words...");
     load_words($conn, $nick);
     $conn->privmsg($nick, "Loading complete.");
-  } elsif ($text =~ /^save/i && $nick eq "mstark") {
+  } elsif ($text =~ /^save$/i && user_is_authed($nick)) {
     $conn->privmsg($nick, "Saving words...");
     save_words($conn, $nick);
     $conn->privmsg($nick, "Saving complete.");
-  } elsif ($text =~ /^add (.+):(.+)/i && $nick eq "mstark") {
+  } elsif ($text =~ /^add (.+):(.+)/i && user_is_authed($nick)) {
     my ($word, $honorphrase) = ($1, $2);
     chomp($honorphrase);
     $conn->privmsg($nick, "Adding '$word' = '$honorphrase'");
@@ -166,14 +201,24 @@ sub on_msg {
     }
   } elsif ($text =~ /^help/i) {
     give_help($conn, $nick);
-  } elsif ($text =~ /^join (#.+)$/i && $nick eq "mstark") {
+  } elsif ($text =~ /^join (#.+)$/i && user_is_authed($nick)) {
     my $channel = $1;
     join_channel($conn, $channel);
-  } elsif ($text =~ /^part (#.+)$/i && $nick eq "mstark") {
+  } elsif ($text =~ /^part (#.+)$/i && user_is_authed($nick)) {
     my $channel = $1;
     part_channel($conn, $channel);
   } elsif ($text =~ /^hono(?:u)?r (.+)/i) {
     check_honor($conn, $1, $nick);    
+  } elsif ($text =~ /^auth (.+)/i && user_is_authed($nick)) {
+    my $user = $1;
+    $conn->privmsg($nick, "Adding '$user' to authenticated users.");
+    add_authed_user($user);
+  } elsif ($text =~ /^load users$/i && user_is_authed($nick)) {
+    $conn->privmsg($nick, "Loading authenticated users.");
+    load_users();
+  } elsif ($text =~ /^save users$/i && user_is_authed($nick)) {
+    $conn->privmsg($nick, "Saving authenticated users.");
+    save_users();
   }
 }
 
@@ -226,6 +271,7 @@ $conn->add_handler('msg', \&on_msg);
 
 # Initial Load
 load_words();
+load_users();
 
 # Go!
 $irc->start();
