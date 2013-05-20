@@ -31,7 +31,6 @@ sub load_users {
     push(@authedUsers, $userHash);
   }
   close($userFH);
-  print Dumper(\@authedUsers);
 }
 
 sub save_users {
