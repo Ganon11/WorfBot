@@ -206,7 +206,7 @@ sub on_msg {
   } elsif ($text =~ /^part (#.+)$/i && user_is_authed($nick)) {
     my $channel = $1;
     part_channel($conn, $channel);
-  } elsif ($text =~ /^hono(?:u)?r (.+)/i) {
+  } elsif ($text =~ /^(?:!)?hono(?:u)?r (.+)/i) {
     check_honor($conn, $1, $nick);    
   } elsif ($text =~ /^auth (.+)/i && user_is_authed($nick)) {
     my $user = $1;
