@@ -161,6 +161,8 @@ sub on_connect {
     join_channel($conn, $channel);
   }
   $conn->{connected} = 1;
+  my $pass = $conn->{password};
+  $conn->privmsg('NickServ', 'identify $pass');
 }
 
 #Run every time WorfBot sees a public message in a channel. Filter for commands here to avoid spamminess!
@@ -252,6 +254,11 @@ open($tmp, "<BiblesOrgAPIKey.dat");
 $biblesOrgAPIKey = <$tmp>;
 close($tmp);
 
+# Now get our password
+open($tmp, "<password.dat");
+my $pass = <$tmp>;
+close($tmp);
+
 # Now, create our IRC connection.
 my $irc = new Net::IRC;
 my $conn = $irc->newconn(
@@ -262,6 +269,7 @@ my $conn = $irc->newconn(
                          Username => 'WorfBot'
 );
 $conn->{channels} = \@channels;
+$conn->{password} = $pass;
 
 # Add listeners for various IRC signals
 $conn->add_handler('376', \&on_connect);
