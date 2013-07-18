@@ -162,7 +162,9 @@ sub on_connect {
   }
   $conn->{connected} = 1;
   my $pass = $conn->{password};
-  $conn->privmsg('NickServ', 'identify $pass');
+  if ($pass ne '') {
+    $conn->privmsg('NickServ', 'identify $pass');
+  }
 }
 
 #Run every time WorfBot sees a public message in a channel. Filter for commands here to avoid spamminess!
@@ -250,14 +252,16 @@ open($tmp, ">debug_log.txt");
 close($tmp);
 
 # Next, initialize our API key from bibles.org
-open($tmp, "<BiblesOrgAPIKey.dat");
-$biblesOrgAPIKey = <$tmp>;
-close($tmp);
+#open($tmp, "<BiblesOrgAPIKey.dat");
+#$biblesOrgAPIKey = <$tmp>;
+#close($tmp);
 
 # Now get our password
-open($tmp, "<password.dat");
-my $pass = <$tmp>;
-close($tmp);
+my $pass = '';
+if (open($tmp, "<password.dat")) {
+  $pass = <$tmp>;
+  close($tmp);
+}
 
 # Now, create our IRC connection.
 my $irc = new Net::IRC;
