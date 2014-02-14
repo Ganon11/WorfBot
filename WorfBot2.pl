@@ -1,27 +1,16 @@
 #!perl
-package WorfBot;
-use AnyLoader qw(Digest::MD5 IO::File Date::Format JSON Data::Dumper);
+use AnyLoader qw(Digest::MD5 IO::File Date::Format Data::Dumper);
+use Bot::BasicBot;
 use warnings;
 use strict;
 
+package WorfBot;
+
 my %honorablePhrases;
-my $biblesOrgAPIKey;
-my %versionInfo;
-#my %authedUsers;
 
 ################################################################################
 #                            Utility Functions                                 #
 ################################################################################
-
-sub load_versions {
-  my $versionFH;
-  open($versionFH, "<versions.json");
-  my $versionString = <$versionFH>;
-  close($versionFH);
-  my $hashref = decode_json($versionString);
-  %versionInfo = %$hashref;
-  print Dumper(\%versionInfo);
-}
 
 sub debug_print {
   my $message = shift;
@@ -35,8 +24,10 @@ sub debug_print {
 sub check_honor {
   my $phrase = shift;
   my $lcPhrase = lc($phrase);
+  $lcPhrase =~ s/^\s+|\s+$//g;
+  print "Using phrase \"$lcPhrase\"\n";
   if (exists $honorablePhrases{$lcPhrase}) {
-    debug_print("Found '$phrase' in hash, using predetermined answer");
+    #debug_print("Found '$phrase' in hash, using predetermined answer");
     if ($honorablePhrases{$lcPhrase} eq "Honorable") {
       return "$phrase has honor.";
     } else {
@@ -44,7 +35,7 @@ sub check_honor {
     }
   } else {
     my $md5hash = md5_hex($lcPhrase);
-    debug_print "Using hash '$md5hash' for phrase '$phrase'";
+    #debug_print "Using hash '$md5hash' for phrase '$phrase'";
     if ($md5hash =~ /[0-7]$/) {
       return "$phrase has honor.";
     } else {
@@ -53,34 +44,22 @@ sub check_honor {
   }
 }
 
-sub quote_bible {
-  my ($reference, $version) = @_;
-  $reference =~ /(\d+)?([a-zA-Z]+)(?:(\d+))(?::(\d+))?(?:-(\d+))?/i;
-  my ($booknum, $book, $chapter, $verse, $verseEnd) = ($1, $2, $3, $4, $5);
-  print "$booknum " if defined $booknum;
-  print "$book " if defined $book;
-  print "$chapter:" if defined $chapter;
-  print "$verse" if defined $verse;
-  print "-$verseEnd" if defined $verseEnd;
-  print "\n";
-}
-
 sub add_word {
   my ($word, $honor) = @_;
   $honorablePhrases{lc $word} = $honor;
 }
 
-# sub join_channel {
-  # my ($conn, $channel) = @_;
-  # $conn->join($channel);
-  # $conn->privmsg($channel, 'I am WorfBot, son of MoghBot');
-# }
+sub join_channel {
+  my ($conn, $channel) = @_;
+  $conn->join($channel);
+  $conn->privmsg($channel, 'I am WorfBot, son of MoghBot');
+}
 
-# sub part_channel {
-  # my ($conn, $channel) = @_;
-  # $conn->privmsg($channel, "Today is a good day to die!");
-  # $conn->part($channel);
-# }
+sub part_channel {
+  my ($conn, $channel) = @_;
+  $conn->privmsg($channel, "Today is a good day to die!");
+  $conn->part($channel);
+}
 
 sub load_words {
   my $ifh;
@@ -115,8 +94,8 @@ sub get_help_string {
 
 sub get_usage_string {
   my $usage = <<END;
-Usage: perl WorfBot.pl <server address> [channel1 channel2 channel3 ...]
-  e.g. perl WorfBot.pl irc.freenode.net #Channel1 #OtherChannel
+Usage: perl WorfBot2.pl <server address> [channel1 channel2 channel3 ...]
+  e.g. perl WorfBot2.pl irc.freenode.net #reddit-Christianity
 END
   return $usage;
 }
@@ -134,11 +113,6 @@ sub init {
   my $tmp;
   open($tmp, ">debug_log.txt");
   close($tmp);
-
-  # Next, initialize our API key from bibles.org
-  open($tmp, "<BiblesOrgAPIKey.dat");
-  $biblesOrgAPIKey = <$tmp>;
-  close($tmp);
 }
 
 sub said {
@@ -146,52 +120,51 @@ sub said {
   #   who: Nick who said the message
   #   channel: The channel in which it was said, or 'msg' if a private message
   #   body: The actual text
-  my $argref = shift;
-  my %args = %$argref;
-  print "Received:\n";
-  foreach my $key (keys %args) {
-    print "\t$key - $args{$key}\n";
+  my ($self, $inforef) = @_;
+  my ($nick, $channel, $text) = ($inforef->{'who'}, $inforef->{'channel'}, $inforef->{'body'});
+  if (!defined $nick || !defined $channel || !defined $text) {
+    return undef;
   }
-  my @otherArgs = @_;
-  if (defined @otherArgs) print "@otherArgs";
-  my ($nick, $channel, $body) = ($args{'nick'}, $args{'channel'}, $args{'body'});
-  if (!defined $nick || !defined $channel || !defined $body) return undef;
-  print "nick: $nick, channel: $channel, body: $body";
+  print "nick: $nick, channel: $channel, text: \"$text\"\n";
   if ($channel eq 'msg') {
     # Private Message
-    if ($body =~ /^load/i && user_is_authed($nick)) {
-      load_words();
-      return "Loading complete.";
-    } elsif ($body =~ /^save/i && user_is_authed($nick)) {
-      save_words();
-      return "Saving complete.";
-    } elsif ($body =~ /^add (.+):(.+)/i && user_is_authed($nick)) {
-      my ($word, $honorphrase) = ($1, $2);
-      chomp($honorphrase);
-      if ($honorphrase eq "Honorable") {
-        add_word($word, "Honorable");
-      } else {
-        add_word($word, "Dishonorable");
-      }
-      return "Added '$word' = '$honorphrase'";
-    } elsif ($body =~ /^help/i) {
+#    if ($body =~ /^load/i && user_is_authed($nick)) {
+#      load_words();
+#      return "Loading complete.";
+#    } elsif ($body =~ /^save/i && user_is_authed($nick)) {
+#      save_words();
+#      return "Saving complete.";
+#    } elsif ($body =~ /^add (.+):(.+)/i && user_is_authed($nick)) {
+#      my ($word, $honorphrase) = ($1, $2);
+#      chomp($honorphrase);
+#      if ($honorphrase eq "Honorable") {
+#        add_word($word, "Honorable");
+#      } else {
+#        add_word($word, "Dishonorable");
+#      }
+#      return "Added '$word' = '$honorphrase'";
+#    } elsif ($body =~ /^help/i) {
+#      return get_help_string();
+#    } elsif ($body =~ /^join (#.+)$/i && user_is_authed($nick)) {
+#      my $channel = $1;
+#      join_channel($conn, $channel);
+#    } elsif ($body =~ /^part (#.+)$/i && user_is_authed($nick)) {
+#      my $channel = $1;
+#      part_channel($conn, $channel);
+#    } elsif ($body =~ /^hono(?:u)?r (.+)/i) {
+#      return check_honor($1);    
+#    } elsif ($body =~ /^auth (.+)/i && user_is_authed($nick)) {
+#    }
+    if ($text =~ /^help/i) {
       return get_help_string();
-    } elsif ($body =~ /^join (#.+)$/i && user_is_authed($nick)) {
-      my $channel = $1;
-      join_channel($conn, $channel);
-    } elsif ($body =~ /^part (#.+)$/i && user_is_authed($nick)) {
-      my $channel = $1;
-      part_channel($conn, $channel);
-    } elsif ($body =~ /^hono(?:u)?r (.+)/i) {
+    } elsif ($text =~ /^hono(?:u)?r (.+)/i) {
       return check_honor($1);    
-    } elsif ($body =~ /^auth (.+)/i && user_is_authed($nick)) {
-    
     }
   } else {
     # Public Message
-    if ($body =~ /^\!hono(?:u)?r (.+)/i) {
+    if ($text =~ /^\!hono(?:u)?r (.+)/i) {
       check_honor($1);
-    } elsif ($body =~ /^\!help/i) {
+    } elsif ($text =~ /^\!help/i) {
       return get_help_string();
     }
   }
@@ -199,32 +172,8 @@ sub said {
   return undef;
 }
 
-sub chanpart {
-  my $argref = shift;
-  my %args = %$argref;
-  # Take care of de-authing a user we can't see anymore.
-}
-
-sub nick_change {
-  my $argref = shift;
-  my %args = %$argref;
-  # Track authed users changing their nicks
-}
-
-sub kicked {
-  my $argref = shift;
-  my %args = %$argref;
-  # Take care of de-authing a user we can't see anymore.
-}
-
 sub help {
   return get_help_string();
-}
-
-sub userquit {
-  my $argref = shift;
-  my %args = %$argref;
-  # Immediately de-auth a user
 }
 
 ################################################################################
@@ -241,9 +190,9 @@ my @channels = @ARGV;
 my $WorfBot = WorfBot->new(
   server    => $server_addr,
   channels  => @channels,
-  nick      => 'WorfBot',
-  alt_nicks => [ 'WorfBot2', 'KernBot', 'KernBot2' ],
-  username  => 'WorfBot',
+  nick      => 'WorfBot2',
+  alt_nicks => [ 'WorfBot3', 'KernBot', 'KernBot2' ],
+  username  => 'WorfBot2',
   name      => 'WorfBot, son of MoghBot'
 );
 
