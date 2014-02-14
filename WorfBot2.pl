@@ -1,5 +1,6 @@
 #!perl
 use AnyLoader qw(Digest::MD5 IO::File Date::Format Data::Dumper);
+use Digest::MD5 qw(md5_hex);
 use Bot::BasicBot;
 use warnings;
 use strict;
@@ -25,18 +26,17 @@ sub check_honor {
   my $phrase = shift;
   my $lcPhrase = lc($phrase);
   $lcPhrase =~ s/^\s+|\s+$//g;
-  print "Using phrase \"$lcPhrase\"\n";
   if (exists $honorablePhrases{$lcPhrase}) {
-    #debug_print("Found '$phrase' in hash, using predetermined answer");
+    debug_print("Found '$phrase' in hash, using predetermined answer");
     if ($honorablePhrases{$lcPhrase} eq "Honorable") {
       return "$phrase has honor.";
     } else {
       return "$phrase is without honor.";
     }
   } else {
-    my $md5hash = md5_hex($lcPhrase);
-    #debug_print "Using hash '$md5hash' for phrase '$phrase'";
-    if ($md5hash =~ /[0-7]$/) {
+    #my $md5hash = md5_hex($lcPhrase);
+    debug_print "Using hash '$md5hash' for phrase '$phrase'";
+    if ($lcPhrase =~ /[0-7]$/) {
       return "$phrase has honor.";
     } else {
       return "$phrase is without honor.";
@@ -125,7 +125,7 @@ sub said {
   if (!defined $nick || !defined $channel || !defined $text) {
     return undef;
   }
-  print "nick: $nick, channel: $channel, text: \"$text\"\n";
+  
   if ($channel eq 'msg') {
     # Private Message
 #    if ($body =~ /^load/i && user_is_authed($nick)) {
@@ -158,14 +158,14 @@ sub said {
     if ($text =~ /^help/i) {
       return get_help_string();
     } elsif ($text =~ /^hono(?:u)?r (.+)/i) {
-      return check_honor($1);    
+      return check_honor($1);
     }
   } else {
     # Public Message
-    if ($text =~ /^\!hono(?:u)?r (.+)/i) {
-      check_honor($1);
-    } elsif ($text =~ /^\!help/i) {
+    if ($text =~ /^\!help/i) {
       return get_help_string();
+    } elsif ($text =~ /^\!hono(?:u)?r (.+)/i) {
+      return check_honor($1);
     }
   }
   # If we haven't processed the message already, ignore it.
@@ -180,9 +180,13 @@ sub help {
 #                                Main Prog                                     #
 #          Args - server_address [channel1 channel2 channel3 ...]              #
 ################################################################################
+
+print md5_hex("blah");
+
 if (scalar(@ARGV) < 1) {
   die get_usage_string();
 }
+
 my $server_addr = shift(@ARGV);
 my @channels = @ARGV;
 
