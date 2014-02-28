@@ -77,6 +77,7 @@ sub check_honor {
   debug_print("'$target' asked about '$phrase'");
   my $response;
   my $lcPhrase = lc($phrase);
+  $lcPhrase =~ s/^\s+|\s+$//g;
   if (exists $honorablePhrases{$lcPhrase}) {
     debug_print("Found '$phrase' in hash, using predetermined answer");
     if ($honorablePhrases{$lcPhrase} eq "Honorable") {

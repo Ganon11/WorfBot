@@ -1,22 +1,26 @@
 i can:Honorable
 romulans:Dishonorable
-bacon:Honorable
 worfbot:Honorable
+bacon:Honorable
 quark:Dishonorable
 jean luc picard:Honorable
+house of durasbot:Dishonorable
 mogh:Honorable
 worf:Honorable
 moghbot:Honorable
-william riker:Honorable
 captain picard:Honorable
+william riker:Honorable
+durasbot:Dishonorable
 god:Honorable
 commander riker:Honorable
 jesus christ:Honorable
+house of duras:Dishonorable
 blood wine:Honorable
 jesus:Honorable
 lwaxana troi:Dishonorable
 cheating:Dishonorable
 mstark:Honorable
 dishonor:Dishonorable
-deanna troi:Dishonorable
+duras:Dishonorable
 com:Dishonorable
+deanna troi:Dishonorable
