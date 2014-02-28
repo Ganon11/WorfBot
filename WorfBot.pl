@@ -6,6 +6,7 @@ use IO::File;
 use Date::Format;
 use JSON;
 use Data::Dumper;
+use URI::Title qw(title);
 use strict;
 use warnings;
 
@@ -95,6 +96,44 @@ sub check_honor {
   $conn->privmsg($target, $response);
 }
 
+sub check_xkcd {
+  my ($conn, $param, $target) = @_;
+  debug_print("'$target' asked for xkcd '$param'");
+  
+  my $url;
+  my $response;
+  if (!defined $param) {
+    $url = 'http://xkcd.com/';
+  } elsif ($param =~ /^\d+$/) {
+    $url = "http://xkcd.com/$param/";
+  } else {
+    my $num = eval { # just in case someone gives us some horrific RE
+	  local $_ = get "http://xkcd.com/archive/";
+	  local $SIG{ALRM} = sub { die "timed out\n" };
+	  alarm 10; # XXX: \o/ magic numbers
+	  m{href="/(\d+)/".*$param}i;
+	  alarm 0;
+	  return $1;
+	};
+	if ($@) {
+	  die unless $@ eq "timed out\n";
+	  $response = "Timed out.";
+	}
+	$url = "http://xkcd.com/$num/" if $num;
+  }
+
+  my $title = title($url);
+  
+  if (defined $title) {
+    $title =~ s/^xkcd: //;
+    $response = "$title - $url";
+  } else {
+    $response = "Couldn't get comic";
+  }
+  
+  $conn->privmsg($target, $response);
+}
+
 sub quote_bible {
   my ($reference, $version) = @_;
   $reference =~ /(\d+)?([a-zA-Z]+)(?:(\d+))(?::(\d+))?(?:-(\d+))?/i;
@@ -176,6 +215,8 @@ sub on_public {
     check_honor($conn, $1, $event->{to}[0]);
   } elsif ($text =~ /^\!help/i) {
     give_help($conn, $event->{nick});
+  } elsif ($text =~ /^\!xkcd (.*)/i) {
+    check_xkcd($conn, $1, $event->{to}[0]);
   }
 }
 
