@@ -1,1 +1,0 @@
-perl WorfBot2.pl irc.freenode.net #mstark
