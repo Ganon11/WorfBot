@@ -7,12 +7,11 @@ use Date::Format;
 use JSON;
 use Data::Dumper;
 use URI::Title qw(title);
+use LWP::Simple;
 use strict;
 use warnings;
 
 my %honorablePhrases;
-my $biblesOrgAPIKey;
-my %versionInfo;
 my @authedUsers;
 
 sub user_is_authed {
@@ -46,16 +45,6 @@ sub add_authed_user {
   if (!user_is_authed($nick)) {
     push(@authedUsers, md5_hex($nick));
   }
-}
-
-sub load_versions {
-  my $versionFH;
-  open($versionFH, "<versions.json");
-  my $versionString = <$versionFH>;
-  close($versionFH);
-  my $hashref = decode_json($versionString);
-  %versionInfo = %$hashref;
-  print Dumper(\%versionInfo);
 }
 
 sub debug_print {
@@ -135,18 +124,6 @@ sub check_xkcd {
   $conn->privmsg($target, $response);
 }
 
-sub quote_bible {
-  my ($reference, $version) = @_;
-  $reference =~ /(\d+)?([a-zA-Z]+)(?:(\d+))(?::(\d+))?(?:-(\d+))?/i;
-  my ($booknum, $book, $chapter, $verse, $verseEnd) = ($1, $2, $3, $4, $5);
-  print "$booknum " if defined $booknum;
-  print "$book " if defined $book;
-  print "$chapter:" if defined $chapter;
-  print "$verse" if defined $verse;
-  print "-$verseEnd" if defined $verseEnd;
-  print "\n";
-}
-
 sub add_word {
   my ($word, $honor) = @_;
   $honorablePhrases{lc $word} = $honor;
@@ -191,6 +168,13 @@ sub save_words {
   close($ofh);
 }
 
+sub auth_nick {
+  my $conn = shift;
+  my $password = $conn->{password};
+  $conn->privmsg('NickServ', 'identify $password');
+  print "Authenticated...?";
+}
+
 #Run once, when WorfBot first connects to a server.
 sub on_connect {
   my $conn = shift;
@@ -201,10 +185,6 @@ sub on_connect {
     join_channel($conn, $channel);
   }
   $conn->{connected} = 1;
-  my $pass = $conn->{password};
-  if ($pass ne '') {
-    $conn->privmsg('NickServ', 'identify $pass');
-  }
 }
 
 #Run every time WorfBot sees a public message in a channel. Filter for commands here to avoid spamminess!
@@ -226,6 +206,11 @@ sub on_msg {
   my ($conn, $event) = @_;
   my $text = $event->{args}[0];
   my $nick = $event->{nick};
+  
+  if ($nick eq 'NickServ') {
+    $conn->privmsg('mstark', $text);
+    return;
+  }
 
   if ($text =~ /^load$/i && user_is_authed($nick)) {
     $conn->privmsg($nick, "Loading words...");
@@ -264,6 +249,11 @@ sub on_msg {
   } elsif ($text =~ /^save users$/i && user_is_authed($nick)) {
     $conn->privmsg($nick, "Saving authenticated users.");
     save_users();
+  } elsif ($text =~ /^auth_nick$/i && user_is_authed($nick)) {
+    $conn->privmsg($nick, "Attempting to authenticate with NickServ.");
+    $conn->privmsg($nick, "identify hunter2");
+    $conn->privmsg('NickServ', "identify hunter2");
+    auth_nick($conn);
   }
 }
 
@@ -278,9 +268,6 @@ END
 # 'Main' function
 # Args - server_address [channel1 channel2 channel3 ...]
 
-# Load Bible versions in THE FUTURE...
-#load_versions();
-
 if (scalar(@ARGV) < 1) {
   print get_usage_string();
   die;
@@ -292,11 +279,6 @@ my @channels = @ARGV;
 my $tmp;
 open($tmp, ">debug_log.txt");
 close($tmp);
-
-# Next, initialize our API key from bibles.org
-#open($tmp, "<BiblesOrgAPIKey.dat");
-#$biblesOrgAPIKey = <$tmp>;
-#close($tmp);
 
 # Now get our password
 my $pass = '';
