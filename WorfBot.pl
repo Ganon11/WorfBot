@@ -8,6 +8,7 @@ use JSON;
 use Data::Dumper;
 use URI::Title qw(title);
 use LWP::Simple;
+use WWW::Wikipedia;
 use strict;
 use warnings;
 
@@ -124,6 +125,23 @@ sub check_xkcd {
   $conn->privmsg($target, $response);
 }
 
+sub check_wikipedia {
+  my ($conn, $phrase, $target) = @_;
+  my $response = "";
+  my $wiki = WWW::Wikipedia->new();
+  my $entry = $wiki->search($phrase);
+  if ($entry->text()) {
+    my $short_text = substr($entry->text(), 0, 256);
+    $short_text =~ s/^\s+|\s+$//g;
+    print $entry->title() . " - " . $short_text;
+    $response = $entry->title() . " - " . $short_text;
+  } else {
+    $response = "No result found for '$phrase'";
+  }
+  
+  $conn->privmsg($target, $response);
+}
+
 sub add_word {
   my ($word, $honor) = @_;
   $honorablePhrases{lc $word} = $honor;
@@ -198,7 +216,15 @@ sub on_public {
     give_help($conn, $event->{nick});
   } elsif ($text =~ /^\!xkcd (.*)/i) {
     check_xkcd($conn, $1, $event->{to}[0]);
-  }
+  } elsif ($text =~ /(.*)\/r\/(\w+)/i) {
+    my $prePhrase = $1;
+    my $subreddit = $2;
+    if ($prePhrase !~ /reddit\.com/i) {
+      $conn->privmsg($event->{to}[0], "Subreddit Link: http://www.reddit.com/r/$subreddit");
+    }
+  }# elsif ($text =~ /^\!wiki (.*)/i) {
+  #  check_wikipedia($conn, $1, $event->{to}[0]);
+  #}
 }
 
 #Run every time WorfBot receives a private message.
